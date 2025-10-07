@@ -39,13 +39,37 @@ function Xapp:addToMainMenu(menu_items)
 end
 
 function Xapp:startXapp(args)
+    local ffi = require("ffi")
+    local C = ffi.C
+
+    local ok, FBInkInput = pcall(ffi.loadlib, "fbink_input", 1)
+    if not ok then
+        print("fbink_input not loaded")
+        return
+    end
+
+    Device.input.input:closeAll()
     if Device.touch_dev ~= nil then
         Device.input:close(Device.touch_dev)
     end
+
     os.execute("LD_LIBRARY_PATH= " .. args)
-    if Device.touch_dev ~= nil then
-        Device.input:open(Device.touch_dev)
+
+    local dev_count = ffi.new("size_t[1]")
+    local match_mask = bit.bor(C.INPUT_TOUCHSCREEN, C.INPUT_SCALED_TABLET, C.INPUT_PAGINATION_BUTTONS, C.INPUT_HOME_BUTTON, C.INPUT_DPAD)
+    local devices = FBInkInput.fbink_input_scan(match_mask, 0, 0, dev_count)
+    if devices ~= nil then
+        for i = 0, tonumber(dev_count[0]) - 1 do
+            local dev = devices[i]
+            if dev.matched then
+                Device.input:fdopen(tonumber(dev.fd), ffi.string(dev.path), ffi.string(dev.name))
+            end
+        end
+        C.free(devices)
     end
+
+    Device.input:open("fake_events")
+
     UIManager:nextTick(function() UIManager:setDirty("all", "full") end)
 end
 
