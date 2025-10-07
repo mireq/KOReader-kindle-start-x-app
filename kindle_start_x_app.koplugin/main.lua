@@ -39,14 +39,13 @@ function Xapp:addToMainMenu(menu_items)
 end
 
 function Xapp:startXapp(args)
-    require("ffi/input"):closeAll()
-    os.execute("killall -CONT awesome")
-    os.execute("LD_LIBRARY_PATH= " .. args)
-    os.execute("killall -STOP awesome")
     if Device.touch_dev ~= nil then
-        Device.input.open(Device.touch_dev)
+        Device.input:close(Device.touch_dev)
     end
-    Device.input.open("fake_events")
+    os.execute("LD_LIBRARY_PATH= " .. args)
+    if Device.touch_dev ~= nil then
+        Device.input:open(Device.touch_dev)
+    end
     UIManager:nextTick(function() UIManager:setDirty("all", "full") end)
 end
 
