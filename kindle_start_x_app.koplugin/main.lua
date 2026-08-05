@@ -53,7 +53,27 @@ function Xapp:startXapp(args)
         Device.input:close(Device.touch_dev)
     end
 
+    local awesome_was_stopped = false
+    local pipe = io.popen("ps -C awesome -o stat= 2>/dev/null")
+    if pipe ~= nil then
+        for status in pipe:lines() do
+            if status:match("^T") then
+                awesome_was_stopped = true
+                break
+            end
+        end
+        pipe:close()
+    end
+
+    if awesome_was_stopped then
+        os.execute("killall -CONT awesome")
+    end
+
     os.execute("LD_LIBRARY_PATH= " .. args)
+
+    if awesome_was_stopped then
+        os.execute("killall -STOP awesome")
+    end
 
     local dev_count = ffi.new("size_t[1]")
     local match_mask = bit.bor(C.INPUT_TOUCHSCREEN, C.INPUT_SCALED_TABLET, C.INPUT_PAGINATION_BUTTONS, C.INPUT_HOME_BUTTON, C.INPUT_DPAD)
